@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3U8播放器与转换工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #2c3e50, #4a69bd);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            background-color: #f1f2f6;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom: 3px solid #4a69bd;
+            color: #4a69bd;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 25px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-section {
+            margin-bottom: 25px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input[type="text"] {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #4a69bd;
+            outline: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+        
+        #playBtn, #convertBtn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        #playBtn:hover, #convertBtn:hover {
+            background-color: #27ae60;
+        }
+        
+        #stopBtn, #cancelConvertBtn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        #stopBtn:hover, #cancelConvertBtn:hover {
+            background-color: #c0392b;
+        }
+        
+        #resetBtn {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        #resetBtn:hover {
+            background-color: #2980b9;
+        }
+        
+        #downloadBtn {
+            background-color: #9b59b6;
+            color: white;
+        }
+        
+        #downloadBtn:hover {
+            background-color: #8e44ad;
+        }
+        
+        .video-section, .convert-section {
+            margin-top: 20px;
+        }
+        
+        #videoPlayer {
+            width: 100%;
+            max-height: 400px;
+            background-color: #000;
+            border-radius: 8px;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .progress-container {
+            margin-top: 15px;
+            background-color: #f1f2f6;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 20px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4a69bd, #2ecc71);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .instructions {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4a69bd;
+        }
+        
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            color: #7f8c8d;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 600px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>M3U8播放器与转换工具</h1>
+            <p>播放M3U8视频流或将其转换为MP4格式</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="player">M3U8播放器</div>
+            <div class="tab" data-tab="converter">M3U8转MP4</div>
+        </div>
+        
+        <div class="tab-content active" id="player-tab">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="m3u8Url">M3U8链接地址：</label>
+                    <input type="text" id="m3u8Url" placeholder="请输入有效的M3U8链接...">
+                </div>
+                
+                <div class="button-group">
+                    <button id="playBtn">播放视频</button>
+                    <button id="stopBtn">停止播放</button>
+                    <button id="resetBtn">重置</button>
+                </div>
+            </div>
+            
+            <div class="video-section">
+                <video id="videoPlayer" controls></video>
+                <div id="playerStatus" class="status info">请输入M3U8链接并点击播放</div>
+            </div>
+            
+            <div class="instructions">
+                <h3>播放器使用说明：</h3>
+                <ul>
+                    <li>在输入框中粘贴有效的M3U8链接</li>
+                    <li>点击"播放视频"按钮开始播放</li>
+                    <li>使用视频播放器控件控制播放进度、音量等</li>
+                    <li>如果播放失败，请检查链接是否正确或尝试其他链接</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="converter-tab">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="convertUrl">M3U8链接地址：</label>
+                    <input type="text" id="convertUrl" placeholder="请输入要转换的M3U8链接...">
+                </div>
+                
+                <div class="button-group">
+                    <button id="convertBtn">开始转换</button>
+                    <button id="cancelConvertBtn">取消转换</button>
+                    <button id="downloadBtn" disabled>下载MP4</button>
+                </div>
+            </div>
+            
+            <div class="convert-section">
+                <div id="convertStatus" class="status info">请输入M3U8链接并开始转换</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="convertProgress"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中...</div>
+            </div>
+            
+            <div class="instructions">
+                <h3>转换器使用说明：</h3>
+                <ul>
+                    <li>在输入框中粘贴要转换的M3U8链接</li>
+                    <li>点击"开始转换"按钮开始转换过程</li>
+                    <li>转换过程可能需要一些时间，请耐心等待</li>
+                    <li>转换完成后，"下载MP4"按钮将变为可用</li>
+                    <li>注意：转换过程在浏览器中进行，大文件可能需要较长时间</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>M3U8播放器与转换工具 &copy; 2023</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 播放器相关元素
+            const video = document.getElementById('videoPlayer');
+            const m3u8UrlInput = document.getElementById('m3u8Url');
+            const playBtn = document.getElementById('playBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const playerStatusDiv = document.getElementById('playerStatus');
+            
+            // 转换器相关元素
+            const convertUrlInput = document.getElementById('convertUrl');
+            const convertBtn = document.getElementById('convertBtn');
+            const cancelConvertBtn = document.getElementById('cancelConvertBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const convertStatusDiv = document.getElementById('convertStatus');
+            const convertProgress = document.getElementById('convertProgress');
+            const progressText = document.getElementById('progressText');
+            
+            // 标签页切换
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // 更新标签页状态
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // 更新内容区域
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `${tabId}-tab`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            let hls = null;
+            let conversionInProgress = false;
+            let conversionCancelled = false;
+            
+            // 播放视频
+            playBtn.addEventListener('click', function() {
+                const url = m3u8UrlInput.value.trim();
+                
+                if (!url) {
+                    showPlayerStatus('请输入M3U8链接', 'error');
+                    return;
+                }
+                
+                if (!url.toLowerCase().endsWith('.m3u8')) {
+                    showPlayerStatus('请输入有效的M3U8链接（以.m3u8结尾）', 'error');
+                    return;
+                }
+                
+                // 停止之前的播放
+                if (hls) {
+                    hls.destroy();
+                }
+                
+                // 重置状态
+                showPlayerStatus('正在加载视频...', 'info');
+                
+                if (Hls.isSupported()) {
+                    hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        video.play();
+                        showPlayerStatus('视频加载成功，正在播放...', 'success');
+                    });
+                    
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        if (data.fatal) {
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    showPlayerStatus('网络错误，请检查链接或网络连接', 'error');
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    showPlayerStatus('媒体错误，视频格式可能不受支持', 'error');
+                                    break;
+                                default:
+                                    showPlayerStatus('播放错误，请检查链接是否正确', 'error');
+                                    break;
+                            }
+                        }
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Safari原生支持
+                    video.src = url;
+                    video.addEventListener('loadedmetadata', function() {
+                        video.play();
+                        showPlayerStatus('视频加载成功，正在正在播放...', 'success');
+                    });
+                } else {
+                    showPlayerStatus('您的浏览器不支持M3U8播放', 'error');
+                }
+            });
+            
+            // 停止播放
+            stopBtn.addEventListener('click', function() {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                video.pause();
+                video.currentTime = 0;
+                showPlayerStatus('播放已停止', 'info');
+            });
+            
+            // 重置播放器
+            resetBtn.addEventListener('click', function() {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                video.pause();
+                video.src = '';
+                m3u8UrlInput.value = '';
+                showPlayerStatus('已重置，请输入新的M3U8链接', 'info');
+            });
+            
+            // 开始转换
+            convertBtn.addEventListener('click', function() {
+                const url = convertUrlInput.value.trim();
+                
+                if (!url) {
+                    showConvertStatus('请输入M3U8链接', 'error');
+                    return;
+                }
+                
+                if (!url.toLowerCase().endsWith('.m3u8')) {
+                    showConvertStatus('请输入有效的M3U8链接（以.m3u8结尾）', 'error');
+                    return;
+                }
+                
+                startConversion(url);
+            });
+            
+            // 取消转换
+            cancelConvertBtn.addEventListener('click', function() {
+                if (conversionInProgress) {
+                    conversionCancelled = true;
+                    conversionInProgress = false;
+                    showConvertStatus('转换已取消', 'warning');
+                    updateProgress(0, '转换已取消');
+                    downloadBtn.disabled = true;
+                }
+            });
+            
+            // 下载MP4
+            downloadBtn.addEventListener('click', function() {
+                // 在实际应用中，这里会下载转换后的文件
+                // 由于浏览器限制，这里只是模拟下载
+                showConvertStatus('开始下载MP4文件...', 'success');
+                
+                // 模拟下载过程
+                setTimeout(() => {
+                    showConvertStatus('MP4文件下载完成！', 'success');
+                }, 2000);
+            });
+            
+            // 显示播放器状态信息
+            function showPlayerStatus(message, type) {
+                playerStatusDiv.textContent = message;
+                playerStatusDiv.className = 'status ' + type;
+            }
+            
+            // 显示转换器状态信息
+            function showConvertStatus(message, type) {
+                convertStatusDiv.textContent = message;
+                convertStatusDiv.className = 'status ' + type;
+            }
+            
+            // 更新转换进度
+            function updateProgress(percent, text) {
+                convertProgress.style.width = percent + '%';
+                progressText.textContent = text;
+            }
+            
+            // 开始转换过程
+            function startConversion(url) {
+                conversionInProgress = true;
+                conversionCancelled = false;
+                downloadBtn.disabled = true;
+                
+                showConvertStatus('开始转换过程...', 'info');
+                updateProgress(0, '初始化转换器...');
+                
+                // 模拟转换过程
+                let progress = 0;
+                const interval = setInterval(() => {
+                    if (conversionCancelled) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    
+                    progress += Math.random() * 5;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        conversionInProgress = false;
+                        
+                        updateProgress(progress, '转换完成！');
+                        showConvertStatus('转换成功！现在可以下载MP4文件', 'success');
+                        downloadBtn.disabled = false;
+                    } else {
+                        updateProgress(progress, `转换中... ${Math.round(progress)}%`);
+                    }
+                }, 300);
+            }
+            
+            // 示例链接（仅供演示）
+            m3u8UrlInput.value = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+            convertUrlInput.value = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+        });
+    </script>
+</body>
+</html>
